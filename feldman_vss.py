@@ -1,5 +1,5 @@
 # Feldman's Verifiable Secret Sharing (Section 4.1 of Gennaro and Goldfeder 's work)
-# unoptimized and no error-checking. coded for clarity instead.
+# Unoptimized and no error-checking. Coded for clarity instead.
 # Python 2
 
 from dumb25519 import *
@@ -9,7 +9,7 @@ from dumb25519 import *
 def polynomial(x, a_list):
     p = Scalar(0)
     for i, a_i in enumerate(a_list):
-        p = p + a_i * (x ** i)   # i is int, not Scalar
+        p += a_i * (x ** i)   # i is int, not Scalar
     return p
 
 class FeldmanVSS:
@@ -45,7 +45,7 @@ class FeldmanVSS:
         RHS = Z   # identity element of cyclic group
         m = len(V_list)
         for i in range(m):
-            RHS = RHS + (player ** i) * V_list[i]
+            RHS += (player ** i) * V_list[i]
         return LHS == RHS
 
     # recover secret
@@ -60,8 +60,8 @@ class FeldmanVSS:
             ell = Scalar(1)
             for j in range(k):
                 if j != i:
-                    ell = ell * a_player_list[j] * Scalar.invert(a_player_list[j] - a_player_list[i])
-            secret = secret + a_share_list[i] * ell
+                    ell *= a_player_list[j] * (a_player_list[j] - a_player_list[i]).invert()
+            secret += a_share_list[i] * ell
         return secret
 
 if __name__ == '__main__':
