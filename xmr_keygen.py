@@ -6,6 +6,7 @@
 from dumb25519 import *
 from elgamal import *
 import itertools
+import random
 
 # We setup a 3-of-6 'multisig' (wallet-level)
 N = 6
@@ -29,16 +30,16 @@ for i in players:
     # -------- relevant code to be put in wallet begins --------
     others = [j for j in players if j != i]   # players\{i}
     others_comb = list(itertools.combinations(others, N - M))   # N-1 choose N-M combinations
-    comb_data[i] = {}   # data (i.e. `a(b+c+...)G`) per combination
+    comb_data[i] = {}   # data to send per combination
     others_data = [[] for _ in players]   # encrypted (via Elgamal) data to send to others
 
     for comb in others_comb:
-        # Note for next line: itertools.combinations returns list of tuples, dict keys
-        # need to be immutable (e.g. tuple), and sorting is so that line 67 is easier.
+        # Note for next line: itertools.combinations returns list of tuples, dict keys need to be
+        # immutable (e.g. tuple), and sorting is so that summing after Elgamal decryption is easier.
         comb_with_i = tuple(sorted(list(comb) + [i]))   # add i in the comb.
-        comb_data[i][comb_with_i] = Z   # identity element
-        for k in comb:
-            comb_data[i][comb_with_i] += prvkeys[i] * pubkeys[k]   # this is the `a(b+c+...)G` thingy
+        # Note for next line: in fact, comb_data[i][comb_with_i] could be ANY element of the cyclic group!
+        # so now I like it to be a randomly choosen public key (NOT i) times player i's private key.
+        comb_data[i][comb_with_i] = prvkeys[i] * pubkeys[random.choice(others)]
         # packaging data to send to players in the combination
         for k in comb:
             # encrypt comb_data[i][j] using pubkeys[k] 
