@@ -46,9 +46,9 @@ for i in players:
         comb_with_i = tuple(sorted(list(comb) + [i]))   # add i in the comb.
         # Note for next lines: in fact, comb_data[i][comb_with_i] could be ANY element of the cyclic group!
         # so now I like it to be a sum of randomly chosen public keys (NOT i) times player i's private key.
-        # comb_data[i][comb_with_i] = prvkeys[i] * pubkeys[random.choice(others)]   # 1 public key only
         comb_data[i][comb_with_i] = Z   # identity element
-        for k in choices(others, random.randint(1, N - 1)):
+        max_addends = N - 1   # freely adjustable
+        for k in choices(others, random.randint(1, max_addends)):
             comb_data[i][comb_with_i] += prvkeys[i] * pubkeys[k]
         # packaging data to send to players in the combination
         for k in comb:
