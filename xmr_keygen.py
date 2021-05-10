@@ -1,9 +1,7 @@
 # A Constant Communication Round Arbitrary Treshold Key Generation for Monero
 # Python 2
 #
-# WARNINGS: 1) Security against any attack model yet to be proven.
-#           2) Commit-and-reveals/ZKPs are not implemented!
-#           3) No premerge function for now (because lazy)
+# WARNING: Security against any attack model yet to be proven.
 
 from dumb25519 import *
 from elgamal import *
@@ -36,7 +34,7 @@ for i in players:
 
     for comb in others_comb:
         # Note for next line: itertools.combinations returns list of tuples, dict keys
-        # need to be immutable (e.g. tuple), and sorting is so that line 69 is easier.
+        # need to be immutable (e.g. tuple), and sorting is so that line 67 is easier.
         comb_with_i = tuple(sorted(list(comb) + [i]))   # add i in the comb.
         comb_data[i][comb_with_i] = Z   # identity element
         for k in comb:
@@ -87,9 +85,10 @@ for i in players:
     # -------- relevant code to be put in wallet ends --------
 
 print('Share Public Keys:\n' + str(share_pubkeys))
-multisig_pubkey = Z   # THE FINAL MULTISIG PUBLIC KEY
-for i in share_pubkeys.values():
-    multisig_pubkey += i   # just summation (no premerge)
+agg_pubkeys = sorted(share_pubkeys.values())   # for premerge
+multisig_pubkey = Z
+for i in agg_pubkeys:
+    multisig_pubkey += hash_to_scalar('premerge', agg_pubkeys, i) * i
 print('\n***MULTISIG PUBLIC KEY (Sum)***: ' + repr(multisig_pubkey))
 print('Phase 3 completed: share public keys sent to other players.\n')
 
@@ -104,17 +103,17 @@ signer_2 = 5
 # -------- relevant code to be put in wallet begins --------
 # first player signing
 for comb, key in share_prvkeys[signer_0].items():
-    recov_prvkey += key   # add all
+    recov_prvkey += hash_to_scalar('premerge', agg_pubkeys, key * G) * key   # add all
 
 # second player signing
 for comb, key in share_prvkeys[signer_1].items():
     if not signer_0 in comb:   # remove keys with 1st player in it
-        recov_prvkey += key   # add all
+        recov_prvkey += hash_to_scalar('premerge', agg_pubkeys, key * G) * key   # add all
 
 # third player signing
 for comb, key in share_prvkeys[signer_2].items():
     if not signer_0 in comb and not signer_1 in comb:   # remove keys with 1st & 2nd player in it
-        recov_prvkey += key   
+        recov_prvkey += hash_to_scalar('premerge', agg_pubkeys, key * G) * key   # add all
 # -------- relevant code to be put in wallet ends --------
 
 print('\n***RECOVERED PRIVATE KEY***: ' + repr(recov_prvkey))
