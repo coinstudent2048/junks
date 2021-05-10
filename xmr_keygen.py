@@ -8,6 +8,13 @@ from elgamal import *
 import itertools
 import random
 
+# primitive random.choices (with replacement)
+def choices(population, k=1):
+    out = []
+    for i in range(k):
+        out += [random.choice(population)]
+    return out
+
 # We setup a 3-of-6 'multisig' (wallet-level)
 N = 6
 M = 3
@@ -37,9 +44,12 @@ for i in players:
         # Note for next line: itertools.combinations returns list of tuples, dict keys need to be
         # immutable (e.g. tuple), and sorting is so that summing after Elgamal decryption is easier.
         comb_with_i = tuple(sorted(list(comb) + [i]))   # add i in the comb.
-        # Note for next line: in fact, comb_data[i][comb_with_i] could be ANY element of the cyclic group!
-        # so now I like it to be a randomly choosen public key (NOT i) times player i's private key.
-        comb_data[i][comb_with_i] = prvkeys[i] * pubkeys[random.choice(others)]
+        # Note for next lines: in fact, comb_data[i][comb_with_i] could be ANY element of the cyclic group!
+        # so now I like it to be a sum of randomly chosen public keys (NOT i) times player i's private key.
+        # comb_data[i][comb_with_i] = prvkeys[i] * pubkeys[random.choice(others)]   # 1 public key only
+        comb_data[i][comb_with_i] = Z   # identity element
+        for k in choices(others, random.randint(1, N - 1)):
+            comb_data[i][comb_with_i] += prvkeys[i] * pubkeys[k]
         # packaging data to send to players in the combination
         for k in comb:
             # encrypt comb_data[i][j] using pubkeys[k] 
