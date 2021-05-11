@@ -71,6 +71,10 @@ for i in players:
     # -------- relevant code to be put in wallet begins --------
     others = [j for j in players if j != i]   # players\{i}
     for j in others:
+        # Unimplemented here, but important in production:
+        # 1) Raise ALARM if parsing of received data fails!
+        # 2) After decrypting Elgamal, raise ALARM if not in elliptic curve!
+        # 3) If in curve, multiply it by cofactor to force it in the cyclic group.
         for comb, enc in round2_recv[i][j]:
             # decrypt Elgamal
             dec = ElgamalPrivateKey(prvkeys[i]).decrypt(enc)
@@ -89,6 +93,9 @@ print('Phase 2 completed: share private keys constructed.\n')
 share_pubkeys = {}   # dict of share public keys
 for i in players:
     # -------- relevant code to be put in wallet begins --------
+    # Unimplemented here, but important in production:
+    # 1) Raise ALARM if parsing of received data fails!
+    # 2) Raise ALARM if you received different pubkeys for same comb!
     for comb, key in share_prvkeys[i].items():
         a_pubkey = key * G
         if not comb in share_pubkeys:   # add a_pubkey in list IF its comb is not there yet
