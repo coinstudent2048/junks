@@ -2,6 +2,7 @@
 # Python 2
 #
 # WARNING: Security against any attack model yet to be proven.
+# TODO: Replace Elgamal with ECIES, because we don't need homomorphicity.
 
 from dumb25519 import *
 from elgamal import *
@@ -44,7 +45,7 @@ for i in players:
         # Note for next line: itertools.combinations returns list of tuples, dict keys need to be
         # immutable (e.g. tuple), and sorting is so that summing after Elgamal decryption is easier.
         comb_with_i = tuple(sorted(list(comb) + [i]))   # add i in the comb.
-        # Note for next lines: in fact, comb_data[i][comb_with_i] could be ANY element of the cyclic group!
+        # Note for next lines: in fact, comb_data[i][comb_with_i] could be ANY element of the main subgroup!
         # so now I like it to be a sum of randomly chosen public keys (NOT i) times player i's private key.
         comb_data[i][comb_with_i] = Z   # identity element
         max_addends = N - 1   # freely adjustable
@@ -74,7 +75,7 @@ for i in players:
         # Unimplemented here, but important in production:
         # 1) Raise ALARM if parsing of received data fails!
         # 2) After decrypting Elgamal, raise ALARM if not in elliptic curve!
-        # 3) If in curve, multiply it by cofactor to force it in the cyclic group.
+        # 3) If in curve, multiply it by cofactor to force it in the main subgroup.
         for comb, enc in round2_recv[i][j]:
             # decrypt Elgamal
             dec = ElgamalPrivateKey(prvkeys[i]).decrypt(enc)
