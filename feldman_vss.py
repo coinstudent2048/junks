@@ -1,6 +1,7 @@
 # Feldman's Verifiable Secret Sharing (Section 4.1 of Gennaro and Goldfeder 's work)
+# Python 3
+#
 # Unoptimized and no error-checking. Coded for clarity instead.
-# Python 2
 
 from dumb25519 import *
 
@@ -79,7 +80,7 @@ if __name__ == '__main__':
     # for i in range(n):
        # print(share_list[i])
     print("--> Phase 1 complete.\n")
-    
+
     # Phase 2: verification of share point.
     # In this example, player with x-coord Scalar(2) wants to check
     # if share she received is legit. In actual, every player must verify
@@ -89,7 +90,7 @@ if __name__ == '__main__':
     else:
         print("Oh no! Share is not legit. Abort ritual.")
     print("--> Phase 2 complete.\n")
-        
+
     # Phase 3: recovering the secret.
     # In actual multisig, this shouldn't be done. This is just for verification
     # that secret can be recovered.
