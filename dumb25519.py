@@ -6,7 +6,6 @@
 
 import random
 import hashlib
-import binascii
 
 # Curve parameters
 q = 2**255 - 19
@@ -24,7 +23,7 @@ def invert(x,p):
 
 def xfromy(y):
     temp = (y*y-1) * invert(d*y*y+1,q)
-    x = exponent(temp,(q+3)/8,q)
+    x = exponent(temp,(q+3)//8,q)
     if (x*x - temp) % q != 0:
         x = (x*I) % q
     if x % 2 != 0:
@@ -32,21 +31,21 @@ def xfromy(y):
     return x
 
 def bit(h,i):
-    return (ord(h[i/8]) >> (i%8)) & 1
+    return (int(h[i//8]) >> (i%8)) & 1
 
 d = -121665 * invert(121666,q)
-I = exponent(2,(q-1)/4,q)
+I = exponent(2,(q-1)//4,q)
 
 # An element of the main subgroup scalar field
 class Scalar:
     def __init__(self,x):
         # Generated from an integer value
-        if isinstance(x,int) or isinstance(x,long):
+        if isinstance(x,int):
             self.x = x % l
         # Generated from a hex representation
         elif isinstance(x,str):
             try:
-                x = binascii.unhexlify(x)
+                x = bytes.fromhex(x)
                 self.x = sum(2**i * bit(x,i) for i in range(0,b)) % l
             except:
                 raise TypeError
@@ -88,11 +87,11 @@ class Scalar:
         return NotImplemented
 
     # Truncated division (possibly by a positive integer)
-    def __div__(self,y):
+    def __truediv__(self,y):
         if isinstance(y,int) and y >= 0:
-            return Scalar(self.x / y)
+            return Scalar(self.x // y)
         if isinstance(y,Scalar):
-            return Scalar(self.x / y.x)
+            return Scalar(self.x // y.x)
         raise NotImplemented
 
     # Integer exponentiation
@@ -140,7 +139,7 @@ class Scalar:
     # Hex representation
     def __repr__(self):
         bits = [(self.x >> i) & 1 for i in range(b)]
-        return binascii.hexlify(''.join([chr(sum([bits[i*8+j] << j for j in range(8)])) for i in range(b/8)]))
+        return bytes.hex(bytes([sum([bits[i*8+j] << j for j in range(8)]) for i in range(b//8)]))
 
     # Return underlying integer
     def __int__(self):
@@ -162,7 +161,7 @@ class Scalar:
 class Point:
     def __init__(self,x,y=None):
         # Generated from integer values
-        if (isinstance(x,long) or isinstance(x,int)) and (isinstance(y,long) or isinstance(y,int)) and y is not None:
+        if isinstance(x,int) and isinstance(y,int) and y is not None:
             self.x = x
             self.y = y
 
@@ -170,11 +169,14 @@ class Point:
                 raise ValueError
         # Generated from a hex representation
         elif isinstance(x,str) and y is None:
-            x = binascii.unhexlify(x)
-            self.y = sum(2**i * bit(x,i) for i in range(0,b-1))
-            self.x = xfromy(self.y)
-            if self.x & 1 != bit(x,b-1):
-                self.x = q - self.x
+            try:
+                x = bytes.fromhex(x)
+                self.y = sum(2**i * bit(x,i) for i in range(0,b-1))
+                self.x = xfromy(self.y)
+                if self.x & 1 != bit(x,b-1):
+                    self.x = q - self.x
+            except:
+                raise TypeError
 
             if not self.on_curve():
                 raise ValueError
@@ -239,7 +241,7 @@ class Point:
     # Hex representation
     def __repr__(self):
         bits = [(self.y >> i) & 1 for i in range(b-1)] + [self.x & 1]
-        return binascii.hexlify(''.join([chr(sum([bits[i*8+j] << j for j in range(8)])) for i in range(b/8)]))
+        return bytes.hex(bytes([sum([bits[i*8+j] << j for j in range(8)]) for i in range(b//8)]))
 
     # Curve membership (not main subgroup!)
     def on_curve(self):
@@ -307,7 +309,7 @@ class PointVector:
     # Multiscalar multiplication
     def __pow__(self,s):
         if isinstance(s,ScalarVector) and len(self.points) == len(s.scalars):
-            return multiexp(s.scalars,self.points)
+            return multiexp(s,self)
         return NotImplemented
 
     # Length
@@ -502,11 +504,11 @@ def hash_to_point(*data):
     for datum in data:
         if datum is None:
             raise TypeError
-        result += hashlib.sha256(str(datum)).hexdigest()
+        result += hashlib.sha256(str(datum).encode('utf-8')).hexdigest()
 
     # Continue hashing until we get a valid Point
     while True:
-        result = hashlib.sha256(result).hexdigest()
+        result = hashlib.sha256(result.encode('utf-8')).hexdigest()
         if make_point(int(result,16)) is not None:
             return make_point(int(result,16))*Scalar(cofactor)
 
@@ -516,11 +518,11 @@ def hash_to_scalar(*data):
     for datum in data:
         if datum is None:
             raise TypeError
-        result += hashlib.sha256(str(datum)).hexdigest()
+        result += hashlib.sha256(str(datum).encode('utf-8')).hexdigest()
 
     # Continue hashing until we get a valid Scalar
     while True:
-        result = hashlib.sha256(result).hexdigest()
+        result = hashlib.sha256(result.encode('utf-8')).hexdigest()
         if int(result,16) < l:
             return Scalar(int(result,16))
 
@@ -543,15 +545,9 @@ G = Point(Gx % q, Gy % q)
 Z = Point(0,1)
 
 # Perform a multiscalar multiplication using a simplified Pippenger algorithm
-def multiexp(*data):
-    if len(data) == 1:
-        scalars = ScalarVector([datum[1] for datum in data[0]])
-        points = PointVector([datum[0] for datum in data[0]])
-    elif len(data) == 2:
-        scalars = ScalarVector(data[0])
-        points = PointVector(data[1])
-    else:
-        raise ValueError
+def multiexp(scalars,points):
+    if not isinstance(scalars,ScalarVector) or not isinstance(points,PointVector):
+        raise TypeError
 
     if len(scalars) != len(points):
         raise IndexError
