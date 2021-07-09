@@ -80,4 +80,3 @@ if players_class[4].multisig_pubkey == recov_pubkey:
     print("Private key successfully recovered!!!")
 else:
     print("Private key recovery failed :(")
-
