@@ -4,8 +4,8 @@
 # -- putting this code into production would be dumb
 # -- assuming this code is secure would also be dumb
 
-import random
-import hashlib
+import secrets
+from hashlib import blake2s
 
 # Curve parameters
 q = 2**255 - 19
@@ -504,11 +504,11 @@ def hash_to_point(*data):
     for datum in data:
         if datum is None:
             raise TypeError
-        result += hashlib.sha256(str(datum).encode('utf-8')).hexdigest()
+        result += blake2s(str(datum).encode('utf-8')).hexdigest()
 
     # Continue hashing until we get a valid Point
     while True:
-        result = hashlib.sha256(result.encode('utf-8')).hexdigest()
+        result = blake2s(result.encode('utf-8')).hexdigest()
         if make_point(int(result,16)) is not None:
             return make_point(int(result,16))*Scalar(cofactor)
 
@@ -518,23 +518,24 @@ def hash_to_scalar(*data):
     for datum in data:
         if datum is None:
             raise TypeError
-        result += hashlib.sha256(str(datum).encode('utf-8')).hexdigest()
+        result += blake2s(str(datum).encode('utf-8')).hexdigest()
 
     # Continue hashing until we get a valid Scalar
     while True:
-        result = hashlib.sha256(result.encode('utf-8')).hexdigest()
+        result = blake2s(result.encode('utf-8')).hexdigest()
         if int(result,16) < l:
             return Scalar(int(result,16))
 
 # Generate a random Scalar
 def random_scalar(zero=True):
-    if zero:
-        return Scalar(random.randrange(0,l))
-    return Scalar(random.randrange(1,l))
+    value = Scalar(secrets.randbelow(l))
+    if not zero and value == Scalar(0):
+        raise ValueError('Random scalar unexpectedly returned zero!')
+    return value
 
 # Generate a random Point in the main subgroup
 def random_point():
-    return hash_to_point(str(random.random()))
+    return hash_to_point(secrets.randbits(b))
 
 # The main subgroup default generator
 Gy = 4*invert(5,q)
@@ -555,7 +556,6 @@ def multiexp(scalars,points):
         return Z
 
     buckets = None
-    nonzero = False
     result = Z # zero point
    
     c = 4 # window parameter; NOTE: the optimal value actually depends on len(points) empirically
