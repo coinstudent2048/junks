@@ -5,23 +5,24 @@
 
 from dumb25519 import *
 
-# polynomial in field F_q
-#    * a_0 = secret.
+# polynomial evaluation poly(x)
+#    * a_list: list of coefficients
 def polynomial(x, a_list):
-    p = Scalar(0)
-    for i, a_i in enumerate(a_list):
-        p += a_i * (x ** i)   # i is int, not Scalar
-    return p
+    powers_x = ScalarVector()
+    powers_x.append(Scalar(1))
+    for i in range(len(a_list) - 1):
+        powers_x.append(x * powers_x[i])
+    return powers_x ** ScalarVector(a_list)
 
 class FeldmanVSS:
-    # generate share_list (for all n) and V_list
-    #    * secret is Scalar in F_q
-    #    * player_list is the x-coord of share points. must have length n >= m.
-    #    * share_list is the list of y-coords of share points.
-    #    * V_list is a_list * G.
+    # generate share_list (for all n players) and V_list
+    #    * secret: Scalar
+    #    * player_list: list of x-coords of share points. must have length n >= m
+    #    * m: number of players needed to recover secret
+    #    * share_list: list of y-coords of share points
+    #    * a_list: the secret polynomial
+    #    * V_list: a_list * G. used in verification
     def generate(self, secret, player_list, m):
-        # now, generate a_list and V_list
-        # Note: a_list is PRIVATE, while V_list is PUBLIC
         a_list = [None for _ in range(m)]
         V_list = [None for _ in range(m)]
         for i in range(m):
@@ -30,28 +31,28 @@ class FeldmanVSS:
             else:
                 a_list[i] = random_scalar()
             V_list[i] = a_list[i] * G
-        # now, generate share_list.
+        # now generate share_list.
         n = len(player_list)
         share_list = [None for _ in range(n)]
         for i in range(n):
             share_list[i] = polynomial(player_list[i], a_list)
         return share_list, V_list
 
-    # verify share
-    #    * V_list has length m
-    #    * 'share' here is only the y-coord of share point to be verified
-    #    * 'player' here is the corresponding x-coord
+    # verify share point
+    #    * player: x-coord of share point to be verified
+    #    * share: y-coord of share point to be verified
+    #    * V_list: <secret polynomial> * G. must have length m.
     def verify(self, player, share, V_list):
         LHS = share * G
-        RHS = Z   # identity element of cyclic group
-        m = len(V_list)
-        for i in range(m):
-            RHS += (player ** i) * V_list[i]
-        return LHS == RHS
+        powers_player = ScalarVector()
+        powers_player.append(Scalar(1))
+        for i in range(len(V_list) - 1):
+            powers_player.append(player * powers_player[i])
+        return LHS == powers_player ** PointVector(V_list)
 
     # recover secret
-    #    * a_share_list must have at least length m
-    #      for successful recovery
+    #    * a_player_list: list of x-coords. must have at least length m.
+    #    * a_share_list: list of y-coords. must have at least length m.
     def recover(self, a_player_list, a_share_list):
         # Lagrange polynomial interpolation just for a_0
         # Faster polynomial interpolation methods can replace this
@@ -68,7 +69,7 @@ class FeldmanVSS:
 if __name__ == '__main__':
     # TESTING
     player_list = [Scalar(1), Scalar(2),   # x-coord for share points. PUBLIC.
-                    Scalar(3), Scalar(4)]   # note: these should never be Scalar(0)!
+                   Scalar(3), Scalar(4)]   # note: these should never be Scalar(0)!
     m = 3   # 3 players needed to recover secret
     n = len(player_list)   # 4 players with shares
     secret = random_scalar()
