@@ -1,6 +1,6 @@
 # Elliptic Curve Elgamal encryption
 
-from dumb25519 import *
+import dumb25519
 
 class ElgamalPublicKey:
     # Set up a public key
@@ -8,7 +8,7 @@ class ElgamalPublicKey:
     # INPUT
     #   N: public key (Point)
     def __init__(self, N):
-        if not isinstance(N, Point):
+        if not isinstance(N, dumb25519.Point):
             raise TypeError('Bad public key!')
         self.N = N
 
@@ -19,11 +19,11 @@ class ElgamalPublicKey:
     # RETURNS
     #   ciphertext ((Point, Point))
     def encrypt(self, M):
-        if not isinstance(M, Point):
+        if not isinstance(M, dumb25519.Point):
             raise TypeError('Bad message!')
 
-        r = random_scalar()   # blinding factor
-        return (r * G, M + r * self.N)
+        r = dumb25519.random_scalar()   # blinding factor
+        return (r * dumb25519.G, M + r * self.N)
 
 class ElgamalPrivateKey:
     # Set up a private key
@@ -31,7 +31,7 @@ class ElgamalPrivateKey:
     # INPUT
     #   x: private key (Scalar)
     def __init__(self, x):
-        if not isinstance(x, Scalar):
+        if not isinstance(x, dumb25519.Scalar):
             raise TypeError('Bad private key!')
         self.x = x
 
@@ -40,7 +40,7 @@ class ElgamalPrivateKey:
     # RETURNS
     #   ElgamalPublicKey instance
     def get_public(self):
-        return ElgamalPublicKey(self.x * G)
+        return ElgamalPublicKey(self.x * dumb25519.G)
 
     # Decryption
     #
@@ -51,16 +51,16 @@ class ElgamalPrivateKey:
     def decrypt(self, C):
         if not isinstance(C, tuple):
             raise TypeError('Bad cipher!')
-        if not (len(C) == 2 and isinstance(C[0], Point) and isinstance(C[1], Point)):
+        if not (len(C) == 2 and isinstance(C[0], dumb25519.Point) and isinstance(C[1], dumb25519.Point)):
             raise TypeError('Bad cipher!')
 
         return C[1] - self.x * C[0]
 
 if __name__ == '__main__':
     # TESTING
-    privkey = ElgamalPrivateKey(random_scalar())
+    privkey = ElgamalPrivateKey(dumb25519.random_scalar())
     print("Private Key (Scalar): " + repr(privkey.x))
-    plaintext = random_point()
+    plaintext = dumb25519.random_point()
     print("Plaintext (Point)   : " + repr(plaintext))
     
     # Encryption

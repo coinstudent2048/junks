@@ -1,22 +1,10 @@
 # Player for xmr_keygen.py
 
-from dumb25519 import *
-# from ecies import *
 import itertools
-import random
 from ast import literal_eval
 
-# generate new point for Round 2. customizable
-def round2_new_point(pubkey_list):
-    out = random.choice(pubkey_list)
-    max_rnd = 1 << 64   # scalar to be multiplied is randomly selected from [0, max_rnd[
-    for P in pubkey_list:
-        out += Scalar(random.randrange(max_rnd)) * P
-    return out
-
-# # alternative: completely new random point
-# def round2_new_point():
-#     return random_point()
+import dumb25519
+# import ecies
 
 # make tuple from string
 def make_tuple(string):
@@ -31,8 +19,8 @@ class Player:
     def __init__(self, my_id, M):
         self.id = my_id   # player ID (int)
         self.M = M   # threshold
-        self.prvkey = random_scalar()
-        self.pubkey = self.prvkey * G
+        self.prvkey = dumb25519.random_scalar()
+        self.pubkey = self.prvkey * dumb25519.G
         self.others_pubkey = {}
 
     # receiver of other player's public keys
@@ -52,13 +40,13 @@ class Player:
         pubkey_list = list(self.others_pubkey.values())
         for comb in self.combs:
             if self.id in comb:
-                self.share_points[comb] = round2_new_point(pubkey_list)   # add to dict
+                self.share_points[comb] = dumb25519.random_point()   # add to dict
 
         for i in self.others:
             data_enc = {}   # temp location of data to encrypt
             for comb in self.combs:
                 if i in comb and self.id in comb:
-                    data_enc[str(comb)] = str(self.share_points[comb])   # add to dict   
+                    data_enc[str(comb)] = str(self.share_points[comb])   # add to dict
             # data_enc must be encrypted thru ECIES, but me lazy, so encryption not executed for now
             self.send_round2[i]['id'] = self.id
             self.send_round2[i]['cipher'] = data_enc
@@ -74,7 +62,7 @@ class Player:
         # validate other's shared EC points (not implemented here for now)
         for comb in cipher:
             # raise error if comb is invalid (i.e. not in share_points)
-            self.share_points[make_tuple(comb)] += Point(cipher[comb])
+            self.share_points[make_tuple(comb)] += dumb25519.Point(cipher[comb])
 
     # prepare for round 3
     def round3_init(self):
@@ -84,8 +72,8 @@ class Player:
         self.send_round3 = {}   # basically share_pubkey + id (same to all others)
         for comb in self.combs:
             if self.id in comb:
-                self.share_prvkey[comb] = hash_to_scalar(self.share_points[comb])
-                self.share_pubkey[comb] = self.share_prvkey[comb] * G
+                self.share_prvkey[comb] = dumb25519.hash_to_scalar(self.share_points[comb])
+                self.share_pubkey[comb] = self.share_prvkey[comb] * dumb25519.G
         del(self.share_points)
         # it is not required for share_pubkey to be encrypted thru ECIES
         self.send_round3['id'] = self.id
@@ -106,10 +94,10 @@ class Player:
 
     # final: premerge the share private and public keys and get the final multisig public key
     def final(self):
-        sorted_share_pubkey = sorted(self.share_pubkey.values(), key = point_sort)
-        self.multisig_pubkey = Z
+        sorted_share_pubkey = sorted(self.share_pubkey.values(), key=point_sort)
+        self.multisig_pubkey = dumb25519.Z
         for comb in self.combs:
-            premerge = hash_to_scalar('premerge', sorted_share_pubkey, self.share_pubkey[comb])
+            premerge = dumb25519.hash_to_scalar('premerge', sorted_share_pubkey, self.share_pubkey[comb])
             if self.id in comb:
                 self.share_prvkey[comb] *= premerge
             self.multisig_pubkey += self.share_pubkey[comb] * premerge

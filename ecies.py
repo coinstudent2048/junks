@@ -5,7 +5,8 @@
 
 import hmac
 import hashlib
-from dumb25519 import *
+
+import dumb25519
 
 # -------- customizable --------
 # key-derivation function (KDF)

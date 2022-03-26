@@ -3,16 +3,16 @@
 #
 # Unoptimized and no error-checking. Coded for clarity instead.
 
-from dumb25519 import *
+import dumb25519
 
 # polynomial evaluation poly(x)
 #    * a_list: list of coefficients
 def polynomial(x, a_list):
-    powers_x = ScalarVector()
-    powers_x.append(Scalar(1))
+    powers_x = dumb25519.ScalarVector()
+    powers_x.append(dumb25519.Scalar(1))
     for i in range(len(a_list) - 1):
         powers_x.append(x * powers_x[i])
-    return powers_x ** ScalarVector(a_list)
+    return powers_x ** dumb25519.ScalarVector(a_list)
 
 class FeldmanVSS:
     # generate share_list (for all n players) and V_list
@@ -29,8 +29,8 @@ class FeldmanVSS:
             if i == 0:
                 a_list[0] = secret   # a_0 = secret
             else:
-                a_list[i] = random_scalar()
-            V_list[i] = a_list[i] * G
+                a_list[i] = dumb25519.random_scalar()
+            V_list[i] = a_list[i] * dumb25519.G
         # now generate share_list.
         n = len(player_list)
         share_list = [None for _ in range(n)]
@@ -43,12 +43,12 @@ class FeldmanVSS:
     #    * share: y-coord of share point to be verified
     #    * V_list: <secret polynomial> * G. must have length m.
     def verify(self, player, share, V_list):
-        LHS = share * G
-        powers_player = ScalarVector()
-        powers_player.append(Scalar(1))
+        LHS = share * dumb25519.G
+        powers_player = dumb25519.ScalarVector()
+        powers_player.append(dumb25519.Scalar(1))
         for i in range(len(V_list) - 1):
             powers_player.append(player * powers_player[i])
-        return LHS == powers_player ** PointVector(V_list)
+        return LHS == powers_player ** dumb25519.PointVector(V_list)
 
     # recover secret
     #    * a_player_list: list of x-coords. must have at least length m.
@@ -56,10 +56,10 @@ class FeldmanVSS:
     def recover(self, a_player_list, a_share_list):
         # Lagrange polynomial interpolation just for a_0
         # Faster polynomial interpolation methods can replace this
-        secret = Scalar(0)
+        secret = dumb25519.Scalar(0)
         k = len(a_player_list)
         for i in range(k):
-            ell = Scalar(1)
+            ell = dumb25519.Scalar(1)
             for j in range(k):
                 if j != i:
                     ell *= a_player_list[j] * (a_player_list[j] - a_player_list[i]).invert()
@@ -68,11 +68,11 @@ class FeldmanVSS:
 
 if __name__ == '__main__':
     # TESTING
-    player_list = [Scalar(1), Scalar(2),   # x-coord for share points. PUBLIC.
-                   Scalar(3), Scalar(4)]   # note: these should never be Scalar(0)!
+    player_list = [dumb25519.Scalar(1), dumb25519.Scalar(2),   # x-coord for share points. PUBLIC.
+                   dumb25519.Scalar(3), dumb25519.Scalar(4)]   # note: these should never be Scalar(0)!
     m = 3   # 3 players needed to recover secret
     n = len(player_list)   # 4 players with shares
-    secret = random_scalar()
+    secret = dumb25519.random_scalar()
     print("Secret: " + repr(secret))
 
     # Phase 1: generating shares
