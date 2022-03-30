@@ -50,7 +50,7 @@ prod_set = set([str(i) for i in prod_list])
 print(f'Distinct product points: { len(prod_set) }\n')
 
 if len(prod_set) == 1:
-    print('Theoretical double spend commited successfully!!!\n')
+    print('Theoretical double spend committed successfully!!!\n')
 
 # What's the simplest mitigation for this?
 # To quote from the getmonero.org source above:
