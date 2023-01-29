@@ -1,4 +1,5 @@
 # Elliptic Curve Elgamal encryption
+# This is rarely used because the points are rarely encrypted (if ever).
 
 import dumb25519
 

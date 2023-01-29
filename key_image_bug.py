@@ -50,7 +50,7 @@ prod_set = set([str(i) for i in prod_list])
 print(f'Distinct product points: { len(prod_set) }\n')
 
 if len(prod_set) == 1:
-    print('Theoretical double spend committed successfully!!!\n')
+    print('Theoretical double spend (actually "8 times" spend) committed successfully!!!\n')
 
 # What's the simplest mitigation for this?
 # To quote from the getmonero.org source above:
@@ -68,5 +68,5 @@ for i, j in enumerate(check_list):
 
 print('Only the #0, corresponding to the original key_image, is the TRUE key image!')
 
-# See https://github.com/monero-project/monero/pull/1744/commits/d282cfcc46d39dc49e97f9ec5cedf7425e74d71f
-# for the actual mitigation in Monero (the "core::check_tx_inputs_keyimages_domain" function)
+# See https://github.com/monero-project/monero/pull/1744/commits/d282cfcc46d39dc49e97f9ec5cedf7425e74d71f#diff-1fb58b51f281d178c1a564bccf94bc813261a1fd585a9372e3d53999a25f9a53R714
+# for the actual mitigation in Monero
