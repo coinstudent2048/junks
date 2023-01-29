@@ -52,8 +52,9 @@ print(f'Distinct product points: { len(prod_set) }\n')
 if len(prod_set) == 1:
     print('Theoretical double spend (actually "8 times" spend) committed successfully!!!\n')
 
-# What's the simplest mitigation for this?
-# To quote from the getmonero.org source above:
+# How to mitigate this?
+# The most elegant and general solution is to use Ristretto (https://ristretto.group/).
+# For Monero, there is a simpler solution. To quote from the getmonero.org source above:
 #
 #     To mitigate, check key images for correctness by multiplying by the curve order l.
 #     Check that the result is the identity element.
