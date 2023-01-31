@@ -16,30 +16,29 @@ class PrimeField:
     def invert(self, allow_zero=False):
         if self.x == 0:
             if allow_zero:
-                return PrimeField(0)
+                return PrimeField(0, self.l)
             else:
                 raise ZeroDivisionError
         return PrimeField(pow(self.x, self.l - 2, self.l), self.l)
 
-    # For the operations, we do not require that self.x == y.x.
     # Addition
     def __add__(self, y):
-        if isinstance(y, PrimeField):
-            return PrimeField(self.x + y.x)
+        if isinstance(y, PrimeField) and self.l == y.l:
+            return PrimeField(self.x + y.x, self.l)
         return NotImplemented
 
     # Subtraction
     def __sub__(self, y):
-        if isinstance(y, PrimeField):
-            return PrimeField(self.x - y.x)
+        if isinstance(y, PrimeField) and self.l == y.l:
+            return PrimeField(self.x - y.x, self.l)
         return NotImplemented
 
     # Multiplication (possibly by an integer)
     def __mul__(self, y):
         if isinstance(y, int):
-            return PrimeField(self.x * y)
-        if isinstance(y, PrimeField):
-            return PrimeField(self.x * y.x)
+            return PrimeField(self.x * y, self.l)
+        if isinstance(y, PrimeField) and self.l == y.l:
+            return PrimeField(self.x * y.x, self.l)
         return NotImplemented
 
     def __rmul__(self, y):
@@ -50,42 +49,42 @@ class PrimeField:
     # Integer exponentiation
     def __pow__(self, y):
         if isinstance(y, int) and y >= 0:
-            return PrimeField(self.x ** y)
+            return PrimeField(self.x ** y, self.l)
         return NotImplemented
 
     # Equality
     def __eq__(self, y):
-        if isinstance(y, PrimeField):
+        if isinstance(y, PrimeField) and self.l == y.l:
             return self.x == y.x
         raise TypeError
 
     # Inequality
     def __ne__(self, y):
-        if isinstance(y, PrimeField):
+        if isinstance(y, PrimeField) and self.l == y.l:
             return self.x != y.x
         raise TypeError
 
     # Less-than comparison (does not account for overflow)
     def __lt__(self, y):
-        if isinstance(y, PrimeField):
+        if isinstance(y, PrimeField) and self.l == y.l:
             return self.x < y.x
         raise TypeError
 
     # Greater-than comparison (does not account for overflow)
     def __gt__(self, y):
-        if isinstance(y, PrimeField):
+        if isinstance(y, PrimeField) and self.l == y.l:
             return self.x > y.x
         raise TypeError
 
     # Less-than-or-equal comparison (does not account for overflow)
     def __le__(self, y):
-        if isinstance(y, PrimeField):
+        if isinstance(y, PrimeField) and self.l == y.l:
             return self.x <= y.x
         raise TypeError
 
     # Greater-than-or-equal comparison (does not account for overflow)
     def __ge__(self, y):
-        if isinstance(y, PrimeField):
+        if isinstance(y, PrimeField) and self.l == y.l:
             return self.x >= y.x
         raise TypeError
 
@@ -95,7 +94,10 @@ class PrimeField:
 
     # Negation
     def __neg__(self):
-        return Scalar(-self.x)
+        return PrimeField(-self.x, self.l)
+
+class Polynomial:
+    pass
 
 # Field of non-prime order l. No prime checking of l
 class NonPrimeField:
