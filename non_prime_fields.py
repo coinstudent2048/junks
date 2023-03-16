@@ -3,6 +3,7 @@
 #
 # Minimal optimization and error-checking. Coded for clarity instead.
 
+
 # Field of prime order l. No prime checking of l
 class PrimeField:
     def __init__(self, x, l):
@@ -91,7 +92,8 @@ class PrimeField:
 
     # Negation
     def __neg__(self):
-        return PrimeField(-self.x, self.l)
+        return self.__mul__(-1)
+
 
 # Polynomial here is a list of PrimeField of order l [c0, c1, ..., cN]
 # which means c0 + c1 * x + ... + cN * x ** N (mod l)
@@ -129,21 +131,29 @@ class Polynomial:
             return Polynomial([i - j for i, j in zip(self.coeffs, y.coeffs)] + extra_coeffs, self.l)
         return NotImplemented
 
-    # Multiplication
-    # Note: This is naive. FFT is a faster algorithm for this.
+    # Multiplication (possibly by an integer)
     def __mul__(self, y):
+        if isinstance(y, int):
+            return Polynomial([i * y for i in self.coeffs], self.l)
         if isinstance(y, Polynomial) and self.l == y.l:
+            # this is naive algorithm
             zero_coeffs = [PrimeField(0, self.l)]
-            product = Polynomial(zero_coeffs, self.l)
-            for i, j in enumerate(y.coeffs):
-                product += Polynomial(zero_coeffs * i + [k * j for k in self.coeffs], self.l)
-            return product
+            product = zero_coeffs * (len(self.coeffs) + len(y.coeffs) - 1)
+            for i0, j0 in enumerate(self.coeffs):
+                for i1, j1 in enumerate(y.coeffs):
+                    product[i0 + i1] += j0 * j1
+            return Polynomial(product, self.l)
+        return NotImplemented
+
+    def __rmul__(self, y):
+        if isinstance(y, int):
+            return self * y
         return NotImplemented
 
     # Divmod (Euclidean division)
-    # Note: This is naive.
     def divmod(self, y, mod_only=False):
         if isinstance(y, Polynomial) and self.l == y.l:
+            # this is naive algorithm
             zero_coeffs = [PrimeField(0, self.l)]
             if y.coeffs == zero_poly:
                 raise ZeroDivisionError
@@ -157,7 +167,7 @@ class Polynomial:
                 if not mod_only:
                     quotient[len_diff] = quot_coeff
                 diff_list = [i - quot_coeff * j for i, j in zip(modulo.coeffs[len_diff: len(modulo.coeffs)], y.coeffs)]
-                modulo = Polynomial(modulo.coeffs[0: len_diff] + diff_list, self.l)
+                modulo = Polynomial(modulo.coeffs[0: len_diff] + diff_list, self.l) # utilize remove trailing zeros
                 len_diff = len(modulo.coeffs) - len(y.coeffs)
                 if modulo.coeffs == zero_coeffs:
                     len_diff -= 1 # here, zero polynomial has 'length' 0
@@ -228,13 +238,16 @@ class Polynomial:
 
     # Negation
     def __neg__(self):
-        return self.__mul__(Polynomial([PrimeField(-1, self.l)], self.l))
+        return self.__mul__(-1)
+
 
 def zero_poly(l):
     return Polynomial([PrimeField(0, l)], l)
 
+
 def one_poly(l):
     return Polynomial([PrimeField(1, l)], l)
+
 
 # Field of non-prime order defined using irreducible polynomial p. No checking of irreducibility
 class NonPrimeField:
@@ -250,8 +263,8 @@ class NonPrimeField:
         zero_poly_npf = zero_poly(self.p.l)
         if self.x == zero_poly_npf:
             raise ZeroDivisionError
-        # Source: https://en.wikipedia.org/wiki/Extended_Euclidean_algorithm#Simple_algebraic_field_extensions
-        # Retrieved: 10/03/2023
+        # source: https://en.wikipedia.org/wiki/Extended_Euclidean_algorithm#Simple_algebraic_field_extensions
+        # retrieved: 10/03/2023
         t = zero_poly_npf
         newt = one_poly(self.p.l)
         r = self.p
@@ -266,9 +279,9 @@ class NonPrimeField:
             raise ValueError("Either self.p is not irreducible or self.x is a multiple of self.p.")
 
         if self.p.l > 2:
-            return Polynomial([r.coeffs[0].invert()], self.p.l) * t
+            return NonPrimeField(Polynomial([r.coeffs[0].invert()], self.p.l) * t, self.p)
         else: # optimization
-            return t
+            return NonPrimeField(t, self.p)
 
     # Addition
     def __add__(self, y):
@@ -282,16 +295,17 @@ class NonPrimeField:
             return NonPrimeField(self.x - y.x, self.p)
         return NotImplemented
 
-    # Multiplication (possibly by a polynomial mod l)
+    # Multiplication (possibly by an integer or a polynomial mod l)
     def __mul__(self, y):
-        if isinstance(y, Polynomial) and self.p.l == y.l:
-            return NonPrimeField(self.x * y, self.l)
+        if isinstance(y, int) or isinstance(y, Polynomial) and self.p.l == y.l:
+            return NonPrimeField(self.x * y, self.p)
         if isinstance(y, NonPrimeField) and self.p == y.p:
-            return NonPrimeField(self.x * y.x, self.l)
+            return NonPrimeField(self.x * y.x, self.p)
         return NotImplemented
 
     def __rmul__(self, y):
-        if isinstance(y, Polynomial) and self.p.l == y.l:
+        if isinstance(y, int) or isinstance(y, Polynomial) and self.p.l == y.l \
+        or isinstance(y, Polynomial) and self.p.l == y.l:
             return self * y
         return NotImplemented
 
@@ -339,8 +353,8 @@ class NonPrimeField:
 
     # String representation
     def __repr__(self):
-        return f'{ self.x } (mod { self.p })'
+        return f'{ [i.x for i in self.x.coeffs] } (mod { self.p })'
 
     # Negation
     def __neg__(self):
-        return NonPrimeField(-self.x, self.p)
+        return self.__mul__(-1)
